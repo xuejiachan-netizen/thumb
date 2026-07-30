@@ -1,0 +1,61 @@
+package com.xuanjia.millionlikes.model.vo;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.util.Date;
+
+/**
+ * 
+ * @TableName blog
+ */
+@Data
+public class BlogVo {
+    /**
+     * 
+     */
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    /**
+     * 
+     */
+    private Long userId;
+
+    /**
+     * 标题
+     */
+    private String title;
+
+    /**
+     * 封面
+     */
+    private String coverImg;
+
+    /**
+     * 内容
+     */
+    private String content;
+
+    /**
+     * 点赞数
+     */
+    private Integer thumbCount;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 更新时间
+     */
+    private Date updateTime;
+
+    /**
+     * 是否已点赞
+     */
+    private Boolean hasThumb;
+}

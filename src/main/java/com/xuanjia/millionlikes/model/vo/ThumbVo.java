@@ -1,0 +1,36 @@
+package com.xuanjia.millionlikes.model.vo;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.util.Date;
+
+/**
+ * 
+ * @TableName thumb
+ */
+@Data
+public class ThumbVo {
+    /**
+     * 
+     */
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    /**
+     * 
+     */
+    private Long userId;
+
+    /**
+     * 
+     */
+    private Long blogId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+}
