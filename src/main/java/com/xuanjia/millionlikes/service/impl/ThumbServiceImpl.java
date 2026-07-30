@@ -73,8 +73,8 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
 
         User loginUser = userService.getLoginUser(request);
         synchronized (loginUser.getId().toString().intern()){
-            transactionTemplate.execute(
-                status -> {
+            return transactionTemplate.execute(
+                    retustatus -> {
                     boolean exists = this.lambdaQuery()
                             .eq(Thumb::getUserId, loginUser.getId())
                             .eq(Thumb::getBlogId, doThumbRequest.getBlogId())
@@ -94,7 +94,7 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
                     return save && update;
                 });
         }
-        return null;
+
     }
 }
 
