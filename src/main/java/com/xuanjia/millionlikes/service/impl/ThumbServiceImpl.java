@@ -1,7 +1,10 @@
 package com.xuanjia.millionlikes.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sun.jdi.LongValue;
+import com.xuanjia.millionlikes.constant.ThumbConstant;
 import com.xuanjia.millionlikes.exception.BusinessException;
 import com.xuanjia.millionlikes.exception.ErrorCode;
 import com.xuanjia.millionlikes.model.domain.Blog;
@@ -16,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -38,6 +42,9 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
 
     private final RedissonClient redissonClient;
 
+    private final RedisTemplate<String, Object> redisTemplate;
+
+
     @Override
     public Boolean doThumb(DoThumbRequest doThumbRequest, HttpServletRequest request) {
         if (doThumbRequest == null || request == null){
@@ -45,13 +52,12 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
         }
 
         User loginUser = userService.getLoginUser(request);
+        String userKey = ThumbConstant.THUMB_PREFIX_KEY + loginUser.getId().toString();
+        String blogKey = doThumbRequest.getBlogId().toString();
         synchronized (loginUser.getId().toString().intern()){
             return transactionTemplate.execute(
                    status -> {
-                       boolean exists = this.lambdaQuery()
-                               .eq(Thumb::getUserId, loginUser.getId())
-                               .eq(Thumb::getBlogId, doThumbRequest.getBlogId())
-                               .exists();
+                       boolean exists = this.isThumb(loginUser.getId(), doThumbRequest.getBlogId());
                        if (exists){
                            throw new RuntimeException("用户已点赞!");
                        }
@@ -63,8 +69,14 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
                         Thumb thumb = new Thumb();
                         thumb.setBlogId(doThumbRequest.getBlogId());
                         thumb.setUserId(loginUser.getId());
-                       boolean save = this.save(thumb);
-                       return save && update;
+
+                       boolean success = this.save(thumb) && update;
+                       if (success){
+                           redisTemplate.opsForHash().put(userKey, blogKey, thumb.getId());
+                            return success;
+                       }else {
+                           return false;
+                       }
                    });
         }
     }
@@ -76,28 +88,36 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
         }
 
         User loginUser = userService.getLoginUser(request);
+        String userKey = ThumbConstant.THUMB_PREFIX_KEY + loginUser.getId().toString();
+        String blogKey = doThumbRequest.getBlogId().toString();
         synchronized (loginUser.getId().toString().intern()){
             return transactionTemplate.execute(
                     retustatus -> {
-                        Thumb thumb = this.lambdaQuery()
-                                .eq(Thumb::getUserId, loginUser.getId())
-                                .eq(Thumb::getBlogId, doThumbRequest.getBlogId())
-                                .one();
-                        if (thumb == null){
-                        throw new RuntimeException("用户未点赞!");
-                    }
+                        Object thumb = redisTemplate.opsForHash().get(userKey, blogKey);
+                        if (ObjectUtil.isEmpty(thumb)){
+                            throw new RuntimeException("用户未点赞!");
+                        }
+                        Long thumbId = Long.valueOf(thumb.toString());
 
-                    boolean update = blogService.lambdaUpdate()
-                            .eq(Blog::getId, doThumbRequest.getBlogId())
-                            .setSql("thumb_count = thumb_count - 1")
-                            .update();
-                    boolean save = this.removeById(thumb.getId());
-                    return save && update;
-                });
+                        boolean update = blogService.lambdaUpdate()
+                                .eq(Blog::getId, doThumbRequest.getBlogId())
+                                .setSql("thumb_count = thumb_count - 1")
+                                .update();
+                        boolean success = update && this.removeById(thumbId);
+                        if (success){
+                            redisTemplate.opsForHash().delete(userKey, blogKey);
+                            return true;
+                        }else {
+                            return false;
+                        }
+                    });
         }
 
     }
 
+    private Boolean isThumb(Long userId, Long blogId){
+        return redisTemplate.opsForHash().hasKey(ThumbConstant.THUMB_PREFIX_KEY + userId, blogId.toString());
+    }
 
     @Override
     public Boolean doThumbWithdisButritedLock(DoThumbRequest doThumbRequest, HttpServletRequest request) {
@@ -172,6 +192,12 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
             throw new RuntimeException("获取分布式锁失败!", e);
         }
 
+    }
+
+    @Override
+    public Boolean hasThumb(Long userId, Long blogId) {
+        redisTemplate.opsForHash().get(ThumbConstant.THUMB_PREFIX_KEY + userId.toString(), blogId.toString());
+        return null;
     }
 }
 
