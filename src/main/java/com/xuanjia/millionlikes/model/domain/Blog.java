@@ -43,7 +43,7 @@ public class Blog {
     /**
      * 点赞数
      */
-    private Integer thumbCount;
+    private Long thumbCount;
 
     /**
      * 创建时间

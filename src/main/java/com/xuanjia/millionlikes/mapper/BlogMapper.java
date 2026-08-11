@@ -3,6 +3,9 @@ package com.xuanjia.millionlikes.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xuanjia.millionlikes.model.domain.Blog;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Map;
 
 /**
 * @author chenxuanjia
@@ -12,6 +15,7 @@ import org.apache.ibatis.annotations.Mapper;
 */
 @Mapper
 public interface BlogMapper extends BaseMapper<Blog> {
+   void batchUpdateThumbCount(@Param("countMap") Map<Long, Long> countMap);
 
 }
 

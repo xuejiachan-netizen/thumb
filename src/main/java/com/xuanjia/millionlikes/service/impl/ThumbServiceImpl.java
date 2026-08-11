@@ -15,6 +15,7 @@ import com.xuanjia.millionlikes.model.dto.DoThumbRequest;
 import com.xuanjia.millionlikes.service.BlogService;
 import com.xuanjia.millionlikes.service.ThumbService;
 import com.xuanjia.millionlikes.service.UserService;
+import com.xuanjia.millionlikes.util.ThumbUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
@@ -30,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 * @description 针对表【thumb】的数据库操作Service实现
 * @createDate 2026-07-30 15:58:26
 */
-@Service
+@Service("ThumbServiceDB")
 @RequiredArgsConstructor
 public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements ThumbService {
 
@@ -52,7 +53,7 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
         }
 
         User loginUser = userService.getLoginUser(request);
-        String userKey = ThumbConstant.THUMB_PREFIX_KEY + loginUser.getId().toString();
+        String userKey = ThumbConstant.USER_THUMB_PREFIX_KEY + loginUser.getId().toString();
         String blogKey = doThumbRequest.getBlogId().toString();
         synchronized (loginUser.getId().toString().intern()){
             return transactionTemplate.execute(
@@ -88,7 +89,7 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
         }
 
         User loginUser = userService.getLoginUser(request);
-        String userKey = ThumbConstant.THUMB_PREFIX_KEY + loginUser.getId().toString();
+        String userKey = ThumbConstant.USER_THUMB_PREFIX_KEY + loginUser.getId().toString();
         String blogKey = doThumbRequest.getBlogId().toString();
         synchronized (loginUser.getId().toString().intern()){
             return transactionTemplate.execute(
@@ -116,10 +117,10 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
     }
 
     private Boolean isThumb(Long userId, Long blogId){
-        return redisTemplate.opsForHash().hasKey(ThumbConstant.THUMB_PREFIX_KEY + userId, blogId.toString());
+        return redisTemplate.opsForHash().hasKey(ThumbConstant.USER_THUMB_PREFIX_KEY + userId, blogId.toString());
     }
 
-    @Override
+    //todo 重新检查并学习分布式锁
     public Boolean doThumbWithdisButritedLock(DoThumbRequest doThumbRequest, HttpServletRequest request) {
         if (doThumbRequest == null || request == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -159,7 +160,7 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
 
     }
 
-    @Override
+    //todo 重新检查并学习分布式锁
     public Boolean undoThumbWithDisbutritedLock(DoThumbRequest doThumbRequest, HttpServletRequest request) {
         if (doThumbRequest == null || request == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -196,8 +197,7 @@ public class ThumbServiceImpl extends ServiceImpl<ThumbMapper, Thumb> implements
 
     @Override
     public Boolean hasThumb(Long userId, Long blogId) {
-        redisTemplate.opsForHash().get(ThumbConstant.THUMB_PREFIX_KEY + userId.toString(), blogId.toString());
-        return null;
+        return redisTemplate.opsForHash().hasKey(ThumbUtil.getUserThumbKey(userId), blogId.toString());
     }
 }
 

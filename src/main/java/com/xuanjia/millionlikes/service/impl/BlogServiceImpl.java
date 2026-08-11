@@ -55,7 +55,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         Map<String, Boolean> blogThumbHashMap = new HashMap<>();
         if (ObjectUtil.isNotEmpty(loginUser)){
             List<Object> blogIdList = blogList.stream().map(blog->blog.getId().toString()).collect(Collectors.toList());
-            List<Object> redisObject = redisTemplate.opsForHash().multiGet(ThumbConstant.THUMB_PREFIX_KEY + loginUser.getId().toString(), blogIdList);
+            List<Object> redisObject = redisTemplate.opsForHash().multiGet(ThumbConstant.USER_THUMB_PREFIX_KEY + loginUser.getId().toString(), blogIdList);
             for (int i = 0; i < redisObject.size(); i++) {
                 if (redisObject.get(i)== null){
                     continue;
