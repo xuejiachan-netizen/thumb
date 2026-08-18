@@ -7,8 +7,8 @@ public class RedisLuaScriptConstant {
 
     /** 用户点赞脚本*/
     public static final RedisScript<Long> THUMB_SCRIPT = new DefaultRedisScript<>("""
-            local tempthumbkey = KEY[1]  --设置临时点赞统计key
-            local userthumbkey = KEY[2]   --设置用户点赞状态key
+            local tempthumbkey = KEYS[1]  --设置临时点赞统计key
+            local userthumbkey = KEYS[2]   --设置用户点赞状态key
             local userid = ARGV[1]   
             local blogid = ARGV[2]
             
@@ -37,8 +37,8 @@ public class RedisLuaScriptConstant {
 
     /** 用户取消点赞脚本*/
     public static final RedisScript<Long> UNTHUMB_SCRIPT = new DefaultRedisScript<>("""
-            local tempthumbkey = KEY[1]
-            local userthumbkey = KEY[2]
+            local tempthumbkey = KEYS[1]
+            local userthumbkey = KEYS[2]
             local userid = ARGV[1]
             local blogid = ARGV[2]
               
@@ -51,10 +51,6 @@ public class RedisLuaScriptConstant {
             local hashkey = userid .. ':' .. blogid
             local oldnumber = tonumber(redis.call("HGET", tempthumbkey,hashkey) or 0 )
             local newnumber = oldnumber -1
-            
-            if newnumber <= 0 then
-            newnumber = 0
-            end
             
             --第三步 取消点赞
             redis.call("HSET", tempthumbkey, hashkey, newnumber)
